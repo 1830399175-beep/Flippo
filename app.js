@@ -868,7 +868,7 @@ function syncSrcUI(){
  if(x)box.insertBefore(c,f);else box.insertBefore(f,c);
  f.classList.toggle('off',x)}
 $('isrc').onchange=e=>{if(e.target.name==='is')setSrc(e.target.value)};
-$('rpick').onclick=e=>{if(SRC==='cam'){e.preventDefault();camOpen()}};
+$('rpick').onclick=e=>{e.preventDefault();if(SRC==='cam'){camOpen();return}$('f').click()};   // 拍摄=重拍；相册=重新打开选择
 $('camdrop').onclick=()=>camOpen();
 function camHint(t){$('camhint').textContent=t}
 function camFit(){
