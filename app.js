@@ -24,10 +24,12 @@ function setPlay(on,d){const F=on&&d>=0,B=on&&d<0;
  $('pico2').setAttribute('d',B?PICON.pause:PICON.back);
  $('play').classList.toggle('on',F);$('bwd').classList.toggle('on',B)}
 const stage=document.querySelector('.stage');
-function busy(on,txt){document.body.classList.toggle('busy',on);$('load').hidden=!on;if(txt)$('ltxt').textContent=txt}
+function busy(on,txt){document.body.classList.toggle('busy',on);$('load').hidden=!on;if(txt)$('ltxt').textContent=txt;
+ [].forEach.call(document.querySelectorAll('.vload'),e=>{e.hidden=!on});
+ if(txt)[].forEach.call(document.querySelectorAll('.vltxt'),e=>{e.textContent=txt})}
 const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c};
 // 网页版网址：小红书容器里改这一行即可
-const SITE='https://flippo.pages.dev';
+const SITE='https://myflippo.pages.dev';
 const inXhs=()=>!!(window.xhs&&window.xhs.miniTool);
 // grain
 const nc=mk(200,200),nx=nc.getContext('2d'),id=nx.createImageData(200,200);
@@ -789,15 +791,22 @@ async function extract(){if(!vid)return;const n=Math.max(10,Math.min(200,+$('n')
   const c=mk(cw,ch);c.getContext('2d').drawImage(vid,csx,csy,csw,csh,0,0,cw,ch);raw.push(c);
   if(k%4===3)await new Promise(r=>setTimeout(r))}
  t=0;$('scr').value=0;flt=null;FX.key='';if(fxKey())await refilter();else{build();busy(false)}}
+function stash(){let d=$('vstash');if(d)return d;d=document.createElement('div');d.id='vstash';
+ d.style.cssText='position:fixed;left:-9999px;top:0;width:320px;height:240px;overflow:hidden;pointer-events:none';
+ document.body.appendChild(d);return d}
 async function load(file){if(!file)return;setSrc('file');busy(true,'正在读取视频…');
- let v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';v.src=URL.createObjectURL(file);
+ let v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';
+ stash().appendChild(v);              // 手机对不在文档里的 video 会拖着不加载，先挂到看不见的角落
+ v.src=URL.createObjectURL(file);v.load();
+ const t0=Date.now(),tick=setInterval(()=>{const s=Math.round((Date.now()-t0)/1000);
+  busy(true,s>20?'正在读取视频… '+s+'s（视频可能在云端，或格式较重，请稍候）':'正在读取视频… '+s+'s')},500);
  await new Promise((r,j)=>{v.onloadeddata=r;v.onerror=()=>{$('st').textContent='无法读取该视频格式';j()}}).catch(()=>{v=null});
- busy(false);
+ clearInterval(tick);busy(false);
  if(!v){$('vname').textContent='读取失败，请换一个文件';$('vinfo').textContent='';return}
  vid=v;vid.className='vth';v.dataset.name=file.name;
  setSrc('file');clampV('n')}
-function clampV(id){const el=$(id),hi=+el.max,lo=+el.min;
- el.value=Math.max(lo,Math.min(hi,+el.value||lo));el.onchange&&el.onchange()}
+function clampV(id){const el=$(id),hi=+el.max,lo=+el.min,v=''+Math.max(lo,Math.min(hi,+el.value||lo));
+ if(v!==el.value){el.value=v;el.onchange&&el.onchange()}}   // 值没变就别再触发 onchange，否则 onchange→clampV 自己递归到爆栈
 function bump(id,d){const el=$(id),hi=+el.max,lo=+el.min;
  el.value=Math.max(lo,Math.min(hi,(+el.value||lo)+d));el.oninput&&el.oninput();clampV(id)}
 let IMP=null;
@@ -811,7 +820,7 @@ function closeImp(apply){
 $('f').onchange=e=>{const f=e.target.files[0];e.target.value='';openImp();if(f)load(f)};
 $('imp').onclick=()=>openImp();
 $('iclose').onclick=()=>closeImp(false);
-$('imask').onclick=e=>{if(e.target===$('imask'))closeImp(false)};
+$('imask').onclick=e=>{const E=e.target;if(E!==$('imask')||document.body.classList.contains('busy'))return;closeImp(false)};
 $('igo').onclick=()=>{
  if(SRC==='cam'){if(!POOL||POOL.length<2){$('st').textContent='请先拍摄';return}
   const chgP=!IMP||IMP.pool!==POOL,chgN2=!IMP||IMP.n!==$('n').value;
